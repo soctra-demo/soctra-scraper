@@ -14,6 +14,15 @@ jobs:
       # 1️⃣ Check out the repo (gets our Python code)
       - name: Checkout repository
         uses: actions/checkout@v4
+      # ---------------------------------------------------------
+      # DEBUG: show exactly what the runner reads from requirements.txt
+      # ---------------------------------------------------------
+      - name: Show raw requirements.txt (debug)
+        run: |
+          echo "===== BEGIN requirements.txt ====="
+          # -A prints every character (including $ at line‑end) and hidden control chars
+          cat -A requirements.txt
+          echo "===== END requirements.txt ====="
 
       # 2️⃣ Set up Python
       - name: Set up Python 3.12
