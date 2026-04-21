@@ -1,0 +1,37 @@
+name: SOCTRA Hourly Scraper
+
+# Run every hour at minute 0 (00:00, 01:00, 02:00, …)
+on:
+  schedule:
+    - cron: '0 * * * *'   # change to '*/30 * * * *' for every 30 minutes, etc.
+  workflow_dispatch:       # also lets you run manually from the GitHub UI
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Check out the repo (gets our Python code)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Set up Python
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # 3️⃣ Install dependencies from requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4️⃣ Run the scraper – secrets are injected as env vars
+      - name: Execute scraper
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python run_job.py
