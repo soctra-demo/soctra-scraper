@@ -35,6 +35,8 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+      - name: Show httpx version (debug)
+        run: pip show httpx
 
       # 4️⃣ Run the scraper – secrets are injected as env vars
       - name: Execute scraper
