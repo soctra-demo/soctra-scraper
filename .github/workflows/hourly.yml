@@ -31,12 +31,20 @@ jobs:
           python-version: '3.12'
 
       # 3️⃣ Install dependencies from requirements.txt
-      - name: Install dependencies
+            - name: Install dependencies
         run: |
+          # Clear pip cache to avoid old packages
+          pip cache purge
+          
+          # Force upgrade pip itself
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      - name: Show httpx version (debug)
-        run: pip show httpx
+          
+          # Install requirements WITH --upgrade flag to overwrite cached packages
+          pip install --upgrade --no-cache-dir -r requirements.txt
+          
+          # Verify httpx version
+          python -c "import httpx; print('httpx version:', httpx.__version__)"
+
 
       # 4️⃣ Run the scraper – secrets are injected as env vars
       - name: Execute scraper
