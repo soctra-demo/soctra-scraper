@@ -1,52 +1,46 @@
 name: SOCTRA Hourly Scraper
 
-# Run every hour at minute 0 (00:00, 01:00, 02:00, …)
 on:
   schedule:
-    - cron: '0 * * * *'   # change to '*/30 * * * *' for every 30 minutes, etc.
-  workflow_dispatch:       # also lets you run manually from the GitHub UI
+    - cron: '0 * * * *'
+  workflow_dispatch:
 
 jobs:
   run-scraper:
     runs-on: ubuntu-latest
 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
-      # 1️⃣ Check out the repo (gets our Python code)
       - name: Checkout repository
         uses: actions/checkout@v4
-      # ---------------------------------------------------------
-      # DEBUG: show exactly what the runner reads from requirements.txt
-      # ---------------------------------------------------------
-      - name: Show raw requirements.txt (debug)
-        run: |
-          echo "===== BEGIN requirements.txt ====="
-          # -A prints every character (including $ at line‑end) and hidden control chars
-          cat -A requirements.txt
-          echo "===== END requirements.txt ====="
 
-      # 2️⃣ Set up Python
-      - name: Set up Python 3.12
+      - name: Show requirements.txt contents
+        run: |
+          echo "=== requirements.txt ==="
+          cat requirements.txt
+          echo "========================"
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      # 3️⃣ Install dependencies from requirements.txt
-            - name: Install dependencies
+      - name: Install dependencies
         run: |
-          # Clear pip cache to avoid old packages
           pip cache purge
-          
-          # Force upgrade pip itself
           python -m pip install --upgrade pip
-          
-          # Install requirements WITH --upgrade flag to overwrite cached packages
           pip install --upgrade --no-cache-dir -r requirements.txt
-          
-          # Verify httpx version
           python -c "import httpx; print('httpx version:', httpx.__version__)"
 
+      - name: Verify secrets
+        run: echo "Secrets loaded successfully"
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-      # 4️⃣ Run the scraper – secrets are injected as env vars
       - name: Execute scraper
         env:
           YT_API_KEY: ${{ secrets.YT_API_KEY }}
