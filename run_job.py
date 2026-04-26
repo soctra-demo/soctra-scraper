@@ -22,6 +22,7 @@ so they never appear in the public repo.
 import os
 import math
 import datetime
+import hashlib
 from googleapiclient.discovery import build
 from supabase import create_client, Client
 
@@ -98,48 +99,61 @@ def insert_valuation(entity_id: int, result: dict, ts_iso: str):
 
 def compute_valuation(e_total: int, e_delta: int,
                      volume_surge: float = 1.0,
-                     anomaly_flag: int = 0):
+                     anomaly_flag: int = 0,
+                     entity_category: str = 'general'):
     """
-    Returns a dict with the intermediate and final values.
-    For the MVP we set:
-    - volume_surge = 1.0 (no transaction volume yet)
-    - anomaly_flag = 0 (no anomaly yet)
+    SOCTRA Valuation Formula (Patent-Compliant Version)
+    Matches Provisional Application Filed by Jeffery Savio Titus
     """
-
-    # === Tuneable parameters (you can change later) ===
-    ω1 = 0.2          # weight of log term
-    ω2 = 0.8          # weight of short‑term momentum
-    α  = 1.0          # scaling for S(t) → Vpre
-    Vbase = 1.0       # base price to avoid zero
-    β  = 0.5          # surge adjustment scale
-    κ  = 2.0          # surge steepness
-    δ  = 0.2          # anomaly penalty factor
-    # ===================================================
-
-    # 1️⃣ S(t) – combined long‑term + short‑term score
-    S = ω1 * math.log(1 + e_total) + ω2 * (e_delta / max(1, e_total))
-
-    # 2️⃣ Vpre(t)
+    # ========== PATENT PARAMETERS (Tunable for Volatility) ==========
+    # To increase price movement, increase ω2 (omega2)
+    ω1 = 0.3              # Long-term popularity weight (Patent Formula)
+    ω2 = 2.5              # Short-term momentum weight (INCREASED for volatility)
+    α  = 2.0              # Sensitivity scaling (Patent Formula)
+    Vbase = 10.0          # Baseline constant (Patent Formula)
+    β  = 0.8              # Surge adjustment scale (Patent Formula)
+    κ  = 3.0              # Surge steepness (Patent Formula)
+    δ  = 0.3              # Anomaly penalty (Patent Formula)
+    # ================================================================
+    
+    # 1️⃣ S(t) – Patented Formula Structure
+    # Note: Using max(1, e_total) exactly as per Patent Page 9, Item (d)
+    momentum = e_delta / max(1, e_total)
+    S = ω1 * math.log(1 + e_total) + ω2 * momentum
+    
+    # 2️⃣ Vpre(t) – Patented Formula
     Vpre = Vbase + α * S
-
-    # 3️⃣ Φ(t) – surge factor (uses volume_surge = TV/MAV)
-    # For now volume_surge is passed in; later you could compute it from the trades table.
+    
+    # 3️⃣ Φ(t) – Patented Surge Factor (using tanh)
     Phi = 1 + β * math.tanh(κ * (volume_surge - 1))
-
-    # 4️⃣ Ψ(t) – anomaly factor
-    Psi = 1 - δ * anomaly_flag   # anomaly_flag = 0 or 1
-
-    # 5️⃣ Final price
-    Vfinal = Vpre * Phi * Psi
-
+    
+    # 4️⃣ Ψ(t) – Patented Anomaly Penalty
+    Psi = 1 - δ * anomaly_flag
+    
+    # 5️⃣ Deterministic Volatility (Hash-Based, NOT Random)
+    # This ensures prices move daily but remain reproducible (Patent Page 3, Object c)
+    current_date = datetime.datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    seed_string = f"{current_date}:{e_total}:{e_delta}"
+    seed_hash = int(hashlib.md5(seed_string.encode()).hexdigest(), 16)
+    # Creates a deterministic factor between 0.97 and 1.03 (±3%)
+    sentiment_factor = 1 + ((seed_hash % 1000) / 1000 - 0.5) * 2 * 0.03
+    
+    # 6️⃣ V(t) – Final Patented Formula
+    Vfinal_raw = Vpre * Phi * Psi * sentiment_factor
+    
+    # 7️⃣ Fractionalization (Patent Claim 7: 0.25 increments)
+    Vfinal = round(Vfinal_raw * 4) / 4
+    
+    # 8️⃣ Minimum Price Floor
+    Vfinal = max(0.25, Vfinal)
+    
     return {
-        'S': S,
-        'Vpre': Vpre,
-        'Phi': Phi,
-        'Psi': Psi,
-        'Vfinal': Vfinal
+        'S': round(S, 4),
+        'Vpre': round(Vpre, 4),
+        'Phi': round(Phi, 4),
+        'Psi': round(Psi, 4),
+        'Vfinal': round(Vfinal, 2)
     }
-
 # ---------- MAIN LOOP -----------------------------------------
 def main():
     now_iso = datetime.datetime.now(timezone.utc).isoformat()
