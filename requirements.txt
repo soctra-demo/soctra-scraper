@@ -1,5 +1,5 @@
 # SOCTRA – Python dependencies
-google-api-python-client==2.122.0      # YouTube API client
-supabase==2.4.0                       # Supabase Python SDK
-python-dotenv==1.0.1                  # Small env‑file helper
-httpx==0.27.0                         # Modern HTTP client (adds proxy support)
+google-api-python-client==2.122.0   # YouTube Data API
+supabase==2.4.0                    # Supabase SDK
+python-dotenv==1.0.1              # Load .env files
+httpx==0.25.2                     # <- updated
