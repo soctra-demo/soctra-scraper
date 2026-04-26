@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from datetime import timezone
+
 """
 SOCTRA – Hourly Data Puller & Valuation Engine
 ================================================
@@ -75,14 +77,14 @@ def insert_raw_metric(entity_id: int, e_total: int, e_delta: int):
         'entity_id': entity_id,
         'e_total': e_total,
         'e_delta': e_delta,
-        'ts': datetime.datetime.utcnow().isoformat()
+        'ts': datetime.datetime.now(timezone.utc).isoformat()
     }).execute()
 
-def upsert_valuation(entity_id: int, result: dict, ts_iso: str):
+def insert_valuation(entity_id: int, result: dict, ts_iso: str):
     """
-    Stores the calculated valuation pieces in the `valuation` table.
+    INSERT a new valuation row (no upsert needed - each hour creates new history)
     """
-    supabase.table('valuation').upsert({
+    supabase.table('valuation').insert({
         'entity_id': entity_id,
         'ts': ts_iso,
         's_score': result['S'],
@@ -90,7 +92,7 @@ def upsert_valuation(entity_id: int, result: dict, ts_iso: str):
         'phi': result['Phi'],
         'psi': result['Psi'],
         'v_final': result['Vfinal']
-    }, on_conflict=['entity_id', 'ts']).execute()
+    }).execute()
 
 # ---------- THE FORMULA (exactly as you gave) ------------------
 
@@ -140,7 +142,7 @@ def compute_valuation(e_total: int, e_delta: int,
 
 # ---------- MAIN LOOP -----------------------------------------
 def main():
-    now_iso = datetime.datetime.utcnow().isoformat()
+    now_iso = datetime.datetime.now(timezone.utc).isoformat()
 
     # 1️⃣ Pull all entities that have platform = youtube
     entity_rows = (supabase
@@ -175,7 +177,7 @@ def main():
                                      anomaly_flag=0)
 
         # e) Write the valuation into the DB
-        upsert_valuation(entity_id, valuation, now_iso)
+        insert_valuation(entity_id, valuation, now_iso)
 
         # Print a tiny line to the GitHub Action log (optional)
         print(f"✅ {ent['external_id']} – e_total={e_total:,} Δ={e_delta:,} → price={valuation['Vfinal']:.2f}")
