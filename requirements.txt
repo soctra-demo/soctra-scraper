@@ -2,4 +2,3 @@
 google-api-python-client==2.122.0   # YouTube Data API
 supabase==2.4.0                    # Supabase SDK
 python-dotenv==1.0.1              # Load .env files
-httpx==0.25.2                     # <- updated
