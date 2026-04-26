@@ -1,5 +1,4 @@
-# SOCTRA – Python dependencies
 google-api-python-client==2.122.0
-supabase==2.4.0
+supabase==2.0.0
 python-dotenv==1.0.1
 httpx==0.24.0
