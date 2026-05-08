@@ -108,8 +108,8 @@ def compute_valuation(e_total: int, e_delta: int,
     # ========== PATENT PARAMETERS (Tunable for Volatility) ==========
     # To increase price movement, increase ω2 (omega2)
     ω1 = 0.3              # Long-term popularity weight (Patent Formula)
-    ω2 = 2.5              # Short-term momentum weight (INCREASED for volatility)
-    α  = 2.0              # Sensitivity scaling (Patent Formula)
+    ω2 = 1.2              # Short-term momentum weight (INCREASED for volatility)
+    α  = 2.5              # Sensitivity scaling (Patent Formula)
     Vbase = 10.0          # Baseline constant (Patent Formula)
     β  = 0.8              # Surge adjustment scale (Patent Formula)
     κ  = 3.0              # Surge steepness (Patent Formula)
@@ -118,7 +118,9 @@ def compute_valuation(e_total: int, e_delta: int,
     
     # 1️⃣ S(t) – Patented Formula Structure
     # Note: Using max(1, e_total) exactly as per Patent Page 9, Item (d)
-    momentum = e_delta / max(1, e_total)
+    scaled_total = max(1, e_total / 1_000_000)   # converts into millions
+momentum = e_delta / scaled_total
+momentum = min(momentum, 500)   # caps extreme spikes
     S = ω1 * math.log(1 + e_total) + ω2 * momentum
     
     # 2️⃣ Vpre(t) – Patented Formula
