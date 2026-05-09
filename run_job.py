@@ -119,8 +119,9 @@ def compute_valuation(e_total: int, e_delta: int,
     # 1️⃣ S(t) – Patented Formula Structure
     # Note: Using max(1, e_total) exactly as per Patent Page 9, Item (d)
     scaled_total = max(1, e_total / 1_000_000)   # converts into millions
-    momentum = e_delta / scaled_total
-    momentum = min(momentum, 500)   # caps extreme spikes
+    momentum = e_delta / max(1, e_total)
+    momentum = momentum * 50
+    momentum = min(momentum, 0.35)    
     S = ω1 * math.log(1 + e_total) + ω2 * momentum
     
     # 2️⃣ Vpre(t) – Patented Formula
